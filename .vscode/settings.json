@@ -1,0 +1,13 @@
+{
+    "idf.portWin": "COM4",
+    "idf.monitorBaudRate": "115200",
+    "idf.flashBaudRate": "115200",
+    "idf.flashType": "UART",
+    "idf.openOcdConfigs": [
+        "board/esp32-bridge.cfg"
+    ],
+    "idf.customExtraVars": {
+        "IDF_TARGET": "esp32"
+    },
+    "C_Cpp.default.compilerPath": "C:/Users/julia/Espressif/tools/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32-elf-g++.exe"
+}
