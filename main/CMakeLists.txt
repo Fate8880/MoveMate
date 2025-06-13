@@ -14,6 +14,8 @@ idf_component_register(
         main.c
         sensor.c
         stepcounter.c
+        peakdetect.c
+        tcp_client.c
     INCLUDE_DIRS "."
     REQUIRES
         protocol_examples_common
