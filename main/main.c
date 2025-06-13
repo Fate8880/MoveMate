@@ -1,3 +1,4 @@
+//main.c
 // Display and sensor congigurations
 #define CONFIG_WIDTH 135
 #define CONFIG_HEIGHT 240
@@ -10,6 +11,9 @@
 #define CONFIG_LED_GPIO 10
 #define CONFIG_OFFSETX 52
 #define CONFIG_OFFSETY 40
+
+// Mode toggle: 1 = stream via TCP, 0 = run step counter
+#define CONNECT_TO_SERVER 1
 
 // ESP-IDF core libraries
 #include "nvs_flash.h"
@@ -35,6 +39,7 @@ static FontxFile fxBig[2];
 extern void step_counter_task(void *pvParameters);
 extern esp_err_t sensor_i2c_master_init(void);
 extern void init_mpu6886(void);
+extern void tcp_client(void *pvParameters);
 
 // Initializes SPIFFS filesystem for storing fonts
 void init_spiffs(void) {
@@ -55,6 +60,9 @@ void app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+     if (CONNECT_TO_SERVER) {
+        ESP_ERROR_CHECK(example_connect());
+    }
 
     // Initialize I2C and MPU sensor
     ESP_ERROR_CHECK(sensor_i2c_master_init());
@@ -90,5 +98,10 @@ void app_main(void)
     args.fx  = fxBig;
 
 
-    xTaskCreate(step_counter_task, "step_counter", 6*1024, &args, 5, NULL);
+    xTaskCreate(step_counter_task, "step_counter", 6 * 1024, &args, 5, NULL);
+
+    if (CONNECT_TO_SERVER) {
+        xTaskCreate(tcp_client, "tcp_client", 8 * 1024, &dev, 5, NULL);
+    }
+
 }
