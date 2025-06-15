@@ -156,3 +156,16 @@ void filter_accel_mag(float ax, float ay, float az, float *filtered_mag)
     prev_lp  = lp;
     *filtered_mag = lp;
 }
+
+float biquad_bandpass(float x, BiquadState* state) {
+    float y = BP_B0 * x
+            + BP_B1 * state->x1
+            + BP_B2 * state->x2
+            - BP_A1 * state->y1
+            - BP_A2 * state->y2;
+    state->x2 = state->x1;
+    state->x1 = x;
+    state->y2 = state->y1;
+    state->y1 = y;
+    return y;
+}

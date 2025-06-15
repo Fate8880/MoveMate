@@ -2,7 +2,6 @@
 
 idf_build_get_property(IDF_TARGET IDF_TARGET)
 
-
 if(CONFIG_EXAMPLE_IPV4)
     set(client_src tcp_client_v4.c)
 else()

@@ -21,7 +21,8 @@ static const char *TAG = "TCP_CLIENT";
 
 void tcp_client(void *pvParameters)
 {
-    TFT_t *dev = pvParameters;
+    (void)pvParameters;
+    
     struct sockaddr_in dest = {
         .sin_family = AF_INET,
         .sin_port   = htons(PORT)
@@ -42,16 +43,25 @@ void tcp_client(void *pvParameters)
     }
     ESP_LOGI(TAG, "Connected to %s:%d", HOST_IP_ADDR, PORT);
 
+    BiquadState bp = {0};
+    
+    // Prime the filter
+    float ax, ay, az, gx, gy, gz;
+    get_mpu_readings(&ax, &ay, &az, &gx, &gy, &gz);
+    float mag = sqrtf(ax*ax + ay*ay + az*az);
+    biquad_bandpass(mag, &bp);
+
     int64_t start = esp_timer_get_time();
     while (esp_timer_get_time() - start < 60 * 1000000) {
-        float ax, ay, az, gx, gy, gz, filt;
         get_mpu_readings(&ax, &ay, &az, &gx, &gy, &gz);
-        filter_accel_mag(ax, ay, az, &filt);
+        mag = sqrtf(ax*ax + ay*ay + az*az);
+        float filtered = biquad_bandpass(mag, &bp);
         int64_t now = esp_timer_get_time();
 
         char line[128];
-        snprintf(line, sizeof(line), "%lld,%.3f,%.3f,%.3f,%.3f\n",
-                 now, ax, ay, az, filt);
+        snprintf(line, sizeof(line), "%lld,%.3f,%.3f,%.3f,%.3f,%.3f\n",
+                 now, (double)mag, (double)filtered, 
+                 (double)ax, (double)ay, (double)az);
         send(sock, line, strlen(line), 0);
 
         vTaskDelay(pdMS_TO_TICKS(10));
