@@ -9,14 +9,14 @@
 #include "st7789.h"
 #include "sensor.h"    
 
-#define BP_B0  0.015621f
+#define BP_B0  0.010432f
 #define BP_B1  0.000000f
-#define BP_B2 -0.015621f
-#define BP_A1 -1.734726f
-#define BP_A2  0.766006f
+#define BP_B2  -0.020865f
+#define BP_A1  -3.676376f
+#define BP_A2  5.087648f
 
-// === 2. Tuning parameters ===
-#define THRESHOLD            0.15f      // from Jupyter peak heights
+// === Tuning parameters ===
+#define THRESHOLD            0.08f      // ADJUST
 #define MIN_STEP_INTERVAL_US 300000     // 300 ms
 #define SAMPLE_PERIOD_US     10000      // 10 ms → 100 Hz
 

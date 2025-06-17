@@ -13,7 +13,7 @@
 #define CONFIG_OFFSETY 40
 
 // Mode toggle: 1 = stream via TCP, 0 = run step counter
-#define CONNECT_TO_SERVER 1
+#define CONNECT_TO_SERVER 0
 
 // ESP-IDF core libraries
 #include "nvs_flash.h"
