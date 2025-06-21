@@ -16,6 +16,8 @@
 #define BP_A2  5.087648f
 
 // === Tuning parameters ===
+#define STEP_CONFIRMATION_WINDOW   1200000  // 1.2 seconds
+#define MIN_WALKING_STEPS          2        
 // STEPS
 #define THRESHOLD            0.08f      // ADJUST
 #define MIN_STEP_INTERVAL_US 300000     // 300 ms
@@ -38,15 +40,16 @@ typedef enum {
     STATE_WALKING,
     STATE_WEAK,
     STATE_STRONG,
-    STATE_IDLE
+    STATE_IDLE,
+    STATE_POTENTIAL_STEP
 } movement_state_t;
 
+
 void step_counter_task(void *pvParameters) {
+    //Display
     step_args_t *args = pvParameters;
     TFT_t     *dev = args->dev;
     FontxFile *fx  = args->fx;
-
-    // Display init
     lcdSetFontDirection(dev, DIRECTION90);
     lcdFillScreen(dev, BLACK);
     lcdDrawFinish(dev);
@@ -64,6 +67,7 @@ void step_counter_task(void *pvParameters) {
     // Movement state tracking
     movement_state_t state = STATE_IDLE;
     int64_t state_entry_time = 0; // Time when the state was last changed
+    int64_t first_step_time = 0;
 
     // Prime the step filter with one sample
     {
@@ -91,20 +95,32 @@ void step_counter_task(void *pvParameters) {
         // STATE DETECTION
 
         // IDLE
-        if (state == STATE_WALKING) {
-            if (now - state_entry_time > 1500000) {
-                state = STATE_IDLE;
-            }
-        } else if (state == STATE_WEAK || state == STATE_STRONG) {
-                if (now - state_entry_time > 500000) {
-                state = STATE_IDLE;
-            }
+        if (state == STATE_WALKING && now - state_entry_time > 1500000) {
+            state = STATE_IDLE;
+        } else if ((state == STATE_WEAK || state == STATE_STRONG) && now - state_entry_time > 500000) {
+            state = STATE_IDLE;
         }
 
         // STEP DETECTOR
-        if ((state == STATE_IDLE || state == STATE_WALKING || state == STATE_STRONG || state == STATE_WEAK) && (curr > prev && curr > next && curr > THRESHOLD)) { // detect local maximum above threshold
-            //int64_t now = esp_timer_get_time();
-            if (now - last_step_us > MIN_STEP_INTERVAL_US) {
+        if (curr > prev && curr > next && curr > THRESHOLD) { // detect local maximum above threshold
+            if (state == STATE_IDLE || state == STATE_WEAK || state == STATE_STRONG) { // potential first step -> step confirmation
+                state = STATE_POTENTIAL_STEP;
+                state_entry_time = now;
+                first_step_time = now;
+                ESP_LOGI(TAG, "Potential step detected, waiting for confirmation");
+            } else if (state == STATE_POTENTIAL_STEP && (now - first_step_time > 500000)) { // second step needs to be done after 0.5 
+                if (now - first_step_time <= STEP_CONFIRMATION_WINDOW) { // step confirmation true
+                    step_count += 2;
+                    state = STATE_WALKING;
+                    state_entry_time = now;
+                    ESP_LOGI(TAG, "Walking confirmed - counted 2 steps");
+                } else {
+                    // first step was most likely a strong movement
+                    state = STATE_STRONG;
+                    strong_duration += 1; // CHANGE
+                    state_entry_time = now;
+                }
+            } else if (state == STATE_WALKING && (now - last_step_us > MIN_STEP_INTERVAL_US)) { // continue walking
                 last_step_us = now;
                 step_count++;
                 state = STATE_WALKING;
@@ -127,6 +143,14 @@ void step_counter_task(void *pvParameters) {
             }
         }
 
+        // TOO LONG IN POTENTIAL STEP
+        if (state == STATE_POTENTIAL_STEP && now - state_entry_time > STEP_CONFIRMATION_WINDOW) {
+            //first step was most likely a strong movement
+            state = STATE_STRONG;
+            strong_duration += 1; // CHANGE
+            state_entry_time = now;
+        }
+
         // state to string
         char* state_str;
         switch (state) {
@@ -134,6 +158,7 @@ void step_counter_task(void *pvParameters) {
             case STATE_WEAK: state_str = "Weak"; break;
             case STATE_STRONG: state_str = "Strong"; break;
             case STATE_IDLE: state_str = "Idle"; break;
+            case STATE_POTENTIAL_STEP: state_str = "Step?"; break;
             default: state_str = "Unknown"; break;
         }
 
