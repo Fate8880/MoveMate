@@ -51,6 +51,7 @@ void step_counter_task(void *pvParameters) {
     lcdFillScreen(dev, BLACK);
     lcdDrawFinish(dev);
     const int X = 10, Y = 10;
+    static int64_t last_display_us = 0;
 
     // Buffer samples for real-time local-max test
     float prev = 0.0f, curr = 0.0f, next = 0.0f;
@@ -91,7 +92,7 @@ void step_counter_task(void *pvParameters) {
 
         // IDLE
         if (state == STATE_WALKING) {
-            if (now - state_entry_time > 1000000) {
+            if (now - state_entry_time > 1500000) {
                 state = STATE_IDLE;
             }
         } else if (state == STATE_WEAK || state == STATE_STRONG) {
@@ -102,7 +103,7 @@ void step_counter_task(void *pvParameters) {
 
         // STEP DETECTOR
         if ((state == STATE_IDLE || state == STATE_WALKING || state == STATE_STRONG || state == STATE_WEAK) && (curr > prev && curr > next && curr > THRESHOLD)) { // detect local maximum above threshold
-            int64_t now = esp_timer_get_time();
+            //int64_t now = esp_timer_get_time();
             if (now - last_step_us > MIN_STEP_INTERVAL_US) {
                 last_step_us = now;
                 step_count++;
@@ -137,16 +138,20 @@ void step_counter_task(void *pvParameters) {
         }
 
         // Display
-        lcdFillScreen(dev, BLACK);
-        char steps_buf[20], weak_buf[20], strong_buf[20], state_buf[20];
-        snprintf(steps_buf, sizeof(steps_buf), "Steps:%4d", step_count);
-        snprintf(weak_buf, sizeof(weak_buf), "Weak:%.2f s", weak_duration);
-        snprintf(strong_buf, sizeof(strong_buf), "Strong:%.2f s", strong_duration);
-        snprintf(state_buf, sizeof(state_buf), "State: %s", state_str);
+        if (now - last_display_us > 500000) { 
+            last_display_us = now;
 
-        lcdDrawString(dev, fx, X, Y, (uint8_t*)steps_buf, WHITE);
-        lcdDrawString(dev, fx, X + 50, Y, (uint8_t*)state_buf, WHITE);
-        lcdDrawFinish(dev);    
+            lcdFillScreen(dev, BLACK);
+            char steps_buf[20], weak_buf[20], strong_buf[20], state_buf[20];
+            snprintf(steps_buf, sizeof(steps_buf), "Steps:%4d", step_count);
+            snprintf(weak_buf, sizeof(weak_buf), "Weak:%.2f s", weak_duration);
+            snprintf(strong_buf, sizeof(strong_buf), "Strong:%.2f s", strong_duration);
+            snprintf(state_buf, sizeof(state_buf), "State: %s", state_str);
+
+            lcdDrawString(dev, fx, X, Y, (uint8_t*)steps_buf, WHITE);
+            lcdDrawString(dev, fx, X + 50, Y, (uint8_t*)state_buf, WHITE);
+            lcdDrawFinish(dev);    
+        }  
 
         ESP_LOGI(TAG, "State: %s", state_str);
         
