@@ -28,12 +28,15 @@
 #include "st7789.h"
 #include "fontx.h"
 #include "esp_spiffs.h"
+#include "display.h" 
+#include "stepcounter.h"
 
 // Logging tag for SPIFFS
 static const char *TAG = "SPIFFS";
 
 // Font structure for large fonts
 static FontxFile fxBig[2];
+static FontxFile fxSmall[2];
 
 // External functions
 extern void step_counter_task(void *pvParameters);
@@ -84,21 +87,27 @@ void app_main(void)
     
     // Fonts
     init_spiffs();
-    InitFontx(fxBig, "/spiffs/ILGH32XB.FNT", "/spiffs/ILMH32XB.FNT");
+    InitFontx(fxBig, "/spiffs/ILGH24XB.FNT", "/spiffs/ILMH24XB.FNT");
     OpenFontx(&fxBig[0]);
     OpenFontx(&fxBig[1]);
+    InitFontx(fxSmall, "/spiffs/ILGH16XB.FNT", "/spiffs/ILMH16XB.FNT");
+    OpenFontx(&fxSmall[0]);
+    OpenFontx(&fxSmall[1]);
 
     typedef struct {
         TFT_t     *dev;
-        FontxFile *fx;
-    } step_args_t;
+        FontxFile *fxBig;
+        FontxFile *fxSmall;
+    } display_args_t;
 
-    static step_args_t args;
-    args.dev = &dev;   
-    args.fx  = fxBig;
+    static display_args_t disp_args = {
+      .dev     = &dev,
+      .fxBig   = fxBig,
+      .fxSmall = fxSmall
+    };
 
+    xTaskCreate(step_counter_task, "step_counter", 6 * 1024, &disp_args, 5, NULL);
 
-    xTaskCreate(step_counter_task, "step_counter", 6 * 1024, &args, 5, NULL);
 
     if (CONNECT_TO_SERVER) {
         xTaskCreate(tcp_client, "tcp_client", 8 * 1024, &dev, 5, NULL);
