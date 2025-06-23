@@ -26,6 +26,23 @@ static void lcdDrawBitmap(
     }
 }
 
+static void lcdDrawBitmapRGB565(
+    TFT_t   *dev,
+    const uint16_t pixels[],
+    int       w,
+    int       h,
+    int       x0,
+    int       y0
+){
+    for(int row=0; row<h; row++){
+        for(int col=0; col<w; col++){
+            uint16_t c = pixels[row * w + col];
+            lcdDrawPixel(dev, x0 + col, y0 + row, c);
+        }
+    }
+}
+
+
 // Helper Methods, rotations, and what is up and down, are confusing otherwise
 static inline void drawPX(TFT_t *dev, int x, int y, uint16_t c) {
     // swap X/Y when addressing the hardware
@@ -34,6 +51,10 @@ static inline void drawPX(TFT_t *dev, int x, int y, uint16_t c) {
 static inline void drawBMP(TFT_t *dev, const uint8_t *b, int w, int h, int x, int y, uint16_t c) {
     // pass swapped
     lcdDrawBitmap(dev, b, w, h, y, x, c);
+}
+static inline void drawBMP565(TFT_t *dev, const uint16_t *px, int w, int h, int x, int y) {
+    // swap X/Y if you still need that
+    lcdDrawBitmapRGB565(dev, px, w, h, y, x);
 }
 static inline void drawSTR(TFT_t *dev, FontxFile *f, int x, int y, uint8_t *s, uint16_t c) {
     // pass swapped
@@ -154,6 +175,7 @@ void drawMoveMate(
     const char *labels[] = { NULL, NULL, NULL };
     int values[3] = { steps, deaths, streak };
     const uint8_t *icons[3] = { foot_icon_bits, x_icon_bits, fire_icon_bits };
+    const uint16_t *icons565[3] = { foot_icon_pixels, x_icon_pixels, fire_icon_pixels };
 
     int rowH = (H - 2*PAD) / 3;
     for(int i=0; i<3; i++){
@@ -176,8 +198,8 @@ void drawMoveMate(
                 (uint8_t*)buf, WHITE);
 
         // Stat Sprite (32x32)
-        drawBMP(dev, icons[i], ICON_W, ICON_H,
-                iconX, y, GREEN);
+        //drawBMP(dev, icons[i], ICON_W, ICON_H, iconX, y, GREEN);
+        drawBMP565(dev, icons565[i], ICON_W, ICON_H, iconX, y);
     }
 
     // Right: score, sprite, state
