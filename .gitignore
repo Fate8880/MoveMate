@@ -1,0 +1,4 @@
+.vscode/settings.json
+dependencies.lock
+main/idf_component.yml
+/build
