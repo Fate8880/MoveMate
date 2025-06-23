@@ -15,6 +15,7 @@ idf_component_register(
         stepcounter.c
         tcp_client.c
         display.c
+        icons.c
     INCLUDE_DIRS "."
     REQUIRES
         protocol_examples_common

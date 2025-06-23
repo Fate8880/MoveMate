@@ -44,6 +44,8 @@ void step_counter_task(void *pvParameters) {
     lcdFillScreen(dev, BLACK);
     lcdDrawFinish(dev);
 
+    bool testDisplay = false; // Is for debugging
+
     // Counters and state
     int               step_count      = 0;
     int               deaths          = 0;
@@ -54,7 +56,8 @@ void step_counter_task(void *pvParameters) {
     float             strong_duration = 0.0f;
 
     // Timing for display and step intervals
-    static int64_t    last_display_us  = 0;
+    int64_t           last_display_us  = esp_timer_get_time();
+    int64_t           last_sim_us      = last_display_us;
     int64_t           last_step_us     = 0;
     int64_t           state_entry_time = 0;
     int64_t           first_step_time  = 0;
@@ -71,82 +74,113 @@ void step_counter_task(void *pvParameters) {
     }
 
     while (1) {
-        // Shift window for step detection
-        prev = curr;
-        curr = next;
-
-        // Read raw IMU and Band-pass filter
-        float ax, ay, az, gx, gy, gz;
-        get_mpu_readings(&ax, &ay, &az, &gx, &gy, &gz);
-        float mag = sqrtf(ax*ax + ay*ay + az*az);
-        next = biquad_bandpass(mag, &bp);
-
         int64_t now = esp_timer_get_time();
 
-        // STATE DETECTION
+        if (testDisplay) {
+            // Once per second simulation
+            if (now - last_sim_us >= 1000000) {
+                last_sim_us = now;
 
-        // IDLE
-        if (state == STATE_WALKING && now - state_entry_time > 1500000) {
-            state = STATE_IDLE;
-        } else if ((state == STATE_WEAK || state == STATE_STRONG)
-                   && now - state_entry_time > 500000) {
-            state = STATE_IDLE;
-        }
+                // +1 step
+                step_count++;
 
-        // STEP DETECTOR
-        if (curr > prev && curr > next && curr > THRESHOLD) {
-            if (state==STATE_IDLE || state==STATE_WEAK || state==STATE_STRONG) {
-                state = STATE_POTENTIAL_STEP;
-                state_entry_time = now;
-                first_step_time  = now;
-                ESP_LOGI(TAG, "Potential step detected, waiting for confirmation");
+                // +250 score (cap at 10000)
+                score += 250;
+                if (score > 10000) score = 10000;
+
+                // every 5 steps → streak++
+                if (step_count % 5 == 0) {
+                    streak++;
+                }
+
+                // every 40 steps → death + reset
+                if (step_count % 40 == 0) {
+                    deaths++;
+                    step_count = 0;
+                    streak     = 0;
+                    score      = 0;
+                }
+
+                // flip state so you see the sprite animate
+                state = (state == STATE_WALKING) ? STATE_IDLE : STATE_WALKING;
             }
-            else if (state==STATE_POTENTIAL_STEP
-                     && (now - first_step_time) > 500000) {
-                if ((now - first_step_time) <= STEP_CONFIRMATION_WINDOW) {
-                    step_count += 2;
+        } else {
+            // Shift window for step detection
+            prev = curr;
+            curr = next;
+
+            // Read raw IMU and Band-pass filter
+            float ax, ay, az, gx, gy, gz;
+            get_mpu_readings(&ax, &ay, &az, &gx, &gy, &gz);
+            float mag = sqrtf(ax*ax + ay*ay + az*az);
+            next = biquad_bandpass(mag, &bp);
+
+            int64_t now = esp_timer_get_time();
+
+            // STATE DETECTION
+
+            // IDLE
+            if (state == STATE_WALKING && now - state_entry_time > 1500000) {
+                state = STATE_IDLE;
+            } else if ((state == STATE_WEAK || state == STATE_STRONG)
+                    && now - state_entry_time > 500000) {
+                state = STATE_IDLE;
+            }
+
+            // STEP DETECTOR
+            if (curr > prev && curr > next && curr > THRESHOLD) {
+                if (state==STATE_IDLE || state==STATE_WEAK || state==STATE_STRONG) {
+                    state = STATE_POTENTIAL_STEP;
+                    state_entry_time = now;
+                    first_step_time  = now;
+                    ESP_LOGI(TAG, "Potential step detected, waiting for confirmation");
+                }
+                else if (state==STATE_POTENTIAL_STEP
+                        && (now - first_step_time) > 500000) {
+                    if ((now - first_step_time) <= STEP_CONFIRMATION_WINDOW) {
+                        step_count += 2;
+                        state = STATE_WALKING;
+                        ESP_LOGI(TAG, "Walking confirmed - counted 2 steps");
+                    } else {
+                        // first step was most likely a strong movement
+                        state = STATE_STRONG;
+                        strong_duration += 1.0f; // CHANGE
+                        ESP_LOGI(TAG, "Strong movement (timeout)");
+                    }
+                    state_entry_time = now;
+                }
+                else if (state==STATE_WALKING && (now - last_step_us) > MIN_STEP_INTERVAL_US) { // continue walking
+                    last_step_us = now;
+                    step_count++;
                     state = STATE_WALKING;
-                    ESP_LOGI(TAG, "Walking confirmed - counted 2 steps");
-                } else {
-                    // first step was most likely a strong movement
+                    state_entry_time = now;
+                    ESP_LOGI(TAG, "Step %d @ %.2fs  mag=%.2f", step_count, now/1e6f, curr);
+                }
+            }
+
+            // NON-PERIODIC MOVEMENTS
+            else if ((state==STATE_IDLE || state==STATE_WEAK || state==STATE_STRONG) && mag > THRESHOLD_WEAK) {
+                if (mag > THRESHOLD_STRONG) {
                     state = STATE_STRONG;
-                    strong_duration += 1.0f; // CHANGE
-                    ESP_LOGI(TAG, "Strong movement (timeout)");
+                    strong_duration += 0.1f;
+                    ESP_LOGI(TAG, "Strong movement: %.2f, mag=%.2f", strong_duration, mag);
+                } else {
+                    state = STATE_WEAK;
+                    weak_duration += 0.1f;
+                    ESP_LOGI(TAG, "Weak movement: %.2f, mag=%.2f", weak_duration, mag);
                 }
                 state_entry_time = now;
             }
-            else if (state==STATE_WALKING && (now - last_step_us) > MIN_STEP_INTERVAL_US) { // continue walking
-                last_step_us = now;
-                step_count++;
-                state = STATE_WALKING;
-                state_entry_time = now;
-                ESP_LOGI(TAG, "Step %d @ %.2fs  mag=%.2f", step_count, now/1e6f, curr);
-            }
-        }
 
-        // NON-PERIODIC MOVEMENTS
-        else if ((state==STATE_IDLE || state==STATE_WEAK || state==STATE_STRONG) && mag > THRESHOLD_WEAK) {
-            if (mag > THRESHOLD_STRONG) {
-                state = STATE_STRONG;
-                strong_duration += 0.1f;
-                ESP_LOGI(TAG, "Strong movement: %.2f, mag=%.2f", strong_duration, mag);
-            } else {
-                state = STATE_WEAK;
-                weak_duration += 0.1f;
-                ESP_LOGI(TAG, "Weak movement: %.2f, mag=%.2f", weak_duration, mag);
-            }
-            state_entry_time = now;
-        }
-
-        // TOO LONG IN POTENTIAL STEP
-        if (state==STATE_POTENTIAL_STEP && (now - state_entry_time) > STEP_CONFIRMATION_WINDOW) {
+            // TOO LONG IN POTENTIAL STEP
+            if (state==STATE_POTENTIAL_STEP && (now - state_entry_time) > STEP_CONFIRMATION_WINDOW) {
             //first step was most likely a strong movement
             state = STATE_STRONG;
             strong_duration += 1.0f;  // CHANGE
             state_entry_time = now;
             ESP_LOGI(TAG, "Step confirmation timeout → STRONG");
         }
-
+        }
         // TODO: Update deaths, streak, score
 
         // Display
