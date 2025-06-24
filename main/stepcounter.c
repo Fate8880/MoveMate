@@ -179,7 +179,6 @@ void step_counter_task(void *pvParameters) {
             state_entry_time = now;
             ESP_LOGI(TAG, "Step confirmation timeout → STRONG");
         }
-        }
         // TODO: Update deaths, streak, score
 
         // Display
