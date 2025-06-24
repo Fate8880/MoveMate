@@ -12,22 +12,13 @@
 #include "stepcounter.h"
 #include "display.h"
 
-// === Biquad filter coefficients ===
-/*
-#define BP_B0  0.010432f
-#define BP_B1  0.000000f
-#define BP_B2  -0.020865f
-#define BP_A1  -3.676376f
-#define BP_A2  5.087648f
-*/
-
 // === Tuning parameters ===
 #define STEP_CONFIRMATION_WINDOW   1200000  // 1.2 seconds
 #define MIN_STEP_INTERVAL_US       300000   // 300 ms
 #define SAMPLE_PERIOD_US           10000    // 10 ms → 100 Hz
-#define THRESHOLD                  0.08f    // ADJUST
-#define THRESHOLD_WEAK             1.5f
-#define THRESHOLD_STRONG           3.0f
+#define THRESHOLD                  0.35f    // ADJUST 0.3-0.37
+#define THRESHOLD_WEAK             1.3f
+#define THRESHOLD_STRONG           2.0f
 
 static const char *TAG = "STEP_COUNTER";
 static BiquadState  bp  = { .x1 = 0, .x2 = 0, .y1 = 0, .y2 = 0 };
@@ -120,7 +111,7 @@ void step_counter_task(void *pvParameters) {
                 step_count++;
                 state = STATE_WALKING;
                 state_entry_time = now;
-                ESP_LOGI(TAG, "Step %d @ %.2fs  mag=%.2f", step_count, now/1e6f, curr);
+                ESP_LOGI(TAG, "Step %d @ %.2fs  mag=%.2f unfilt.=%.2f", step_count, now/1e6f, curr, mag);
             }
         }
 

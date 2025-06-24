@@ -23,11 +23,19 @@ typedef struct {
 } BiquadState;
 
 // Bandpass filter coefficients
-#define BP_B0  0.015621f
+// ??
+// #define BP_B0  0.015621f
+// #define BP_B1  0.000000f
+// #define BP_B2 -0.015621f
+// #define BP_A1 -1.734726f
+// #define BP_A2  0.766006f
+
+// 0.5-4.5 Hz for Walking and Running
+#define BP_B0  0.112160f
 #define BP_B1  0.000000f
-#define BP_B2 -0.015621f
-#define BP_A1 -1.734726f
-#define BP_A2  0.766006f
+#define BP_B2  -0.112160f
+#define BP_A1  -1.767757f
+#define BP_A2  0.775680f
 
 // Band-pass biquad filter function
 float biquad_bandpass(float x, BiquadState* state);

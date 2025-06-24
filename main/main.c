@@ -13,7 +13,7 @@
 #define CONFIG_OFFSETY 40
 
 // Mode toggle: 1 = stream via TCP, 0 = run step counter
-#define CONNECT_TO_SERVER 0
+#define CONNECT_TO_SERVER 1
 
 // ESP-IDF core libraries
 #include "nvs_flash.h"
@@ -63,9 +63,9 @@ void app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-     if (CONNECT_TO_SERVER) {
-        ESP_ERROR_CHECK(example_connect());
-    }
+    // if (CONNECT_TO_SERVER) {
+    //     ESP_ERROR_CHECK(example_connect());
+    // }
 
     // Initialize I2C and MPU sensor
     ESP_ERROR_CHECK(sensor_i2c_master_init());
