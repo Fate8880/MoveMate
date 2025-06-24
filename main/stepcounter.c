@@ -11,8 +11,9 @@
 #include "sensor.h"
 #include "stepcounter.h"
 #include "display.h"
+#include "driver/gpio.h"
 
-bool testDisplay = true; // Is for debugging
+bool testDisplay = false; // Is for debugging
 
 // === Tuning parameters ===
 #define STEP_CONFIRMATION_WINDOW    1200000  // 1.2 seconds
@@ -24,6 +25,8 @@ bool testDisplay = true; // Is for debugging
 // RUNNING
 #define STEP_FREQ_WINDOW            5
 #define THRESHOLD_RUNNING           2.2f
+
+#define BUTTON_A                    37         // Button at the front
 
 static uint64_t step_times[STEP_FREQ_WINDOW] = {0};
 static int step_time_idx = 0;
@@ -60,12 +63,29 @@ void update_step_frequency(int64_t now, movement_state_t *state) {
     }
 }
 
+void init_button() {
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << BUTTON_A),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    gpio_config(&io_conf);
+}
+
+
 void step_counter_task(void *pvParameters) {
     // Display
     display_args_t *args = (display_args_t*)pvParameters;
     TFT_t     *dev     = args->dev;
     FontxFile *fxBig   = args->fxBig;
     FontxFile *fxSmall = args->fxSmall;
+
+    // Button
+    init_button();
+    bool stationary_mode = false;
+    int last_button_state = 1; // pulled-up, not pressed
 
     // Rotate our text for portrait mode, clear once
     lcdSetFontDirection(dev, DIRECTION90);
@@ -103,6 +123,19 @@ void step_counter_task(void *pvParameters) {
 
     while (1) {
         int64_t now = esp_timer_get_time();
+
+        // Button pressed?
+        int current_button_state = gpio_get_level(BUTTON_A);
+        if (!current_button_state && last_button_state) {
+            if (stationary_mode) {
+                stationary_mode = false;
+                ESP_LOGI(TAG, "Stationary mode OFF");
+            } else {
+                stationary_mode = true;
+                ESP_LOGI(TAG, "Stationary mode ON");
+            }
+        }
+        last_button_state = current_button_state;
 
         if (testDisplay) {
             static int sim_step = 0;
@@ -167,7 +200,7 @@ void step_counter_task(void *pvParameters) {
             }
 
             // STEP DETECTOR
-            if (curr > prev && curr > next && curr > THRESHOLD) {
+            if (curr > prev && curr > next && curr > THRESHOLD && !stationary_mode) {
                 if (state==STATE_IDLE || state==STATE_WEAK || state==STATE_STRONG) {
                     state = STATE_POTENTIAL_STEP;
                     state_entry_time = now;
@@ -215,7 +248,7 @@ void step_counter_task(void *pvParameters) {
             if (state==STATE_POTENTIAL_STEP && (now - state_entry_time) > STEP_CONFIRMATION_WINDOW) {
             //first step was most likely a strong movement
             state = STATE_STRONG;
-            strong_duration += 1.0f;  // CHANGE
+            strong_duration += 1.0f;  // TODO: CHANGE
             state_entry_time = now;
             ESP_LOGI(TAG, "Step confirmation timeout → STRONG");
         }
