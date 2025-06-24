@@ -11,8 +11,8 @@ const uint8_t fire_icon_bits[ICON_BYTES]    = { [0 ... ICON_BYTES-1] = 0xFF };
 
 // One dummy sprite, reused for all 5 states
 static const uint8_t dog_dummy[SPRITE_BYTES] = { [0 ... SPRITE_BYTES-1] = 0xFF };
-const uint8_t *dog_sprite_bits[5] = {
-    dog_dummy, dog_dummy, dog_dummy, dog_dummy, dog_dummy
+const uint8_t *dog_sprite_bits[6] = {
+    dog_dummy, dog_dummy, dog_dummy, dog_dummy, dog_dummy, dog_dummy
 };
 
 const uint16_t foot_icon_pixels[1024] = {

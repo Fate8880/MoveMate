@@ -40,7 +40,7 @@ extern const uint8_t x_icon_bits[];
 extern const uint8_t fire_icon_bits[];
 
 // Dog sprites per state (64x64px each)
-extern const uint8_t *dog_sprite_bits[5];  // index with movement_state_t
+extern const uint8_t *dog_sprite_bits[6];  // index with movement_state_t
 
 void drawMoveMate(
     TFT_t             *dev,

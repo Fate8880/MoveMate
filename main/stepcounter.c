@@ -13,15 +13,50 @@
 #include "display.h"
 
 // === Tuning parameters ===
-#define STEP_CONFIRMATION_WINDOW   1200000  // 1.2 seconds
-#define MIN_STEP_INTERVAL_US       300000   // 300 ms
-#define SAMPLE_PERIOD_US           10000    // 10 ms → 100 Hz
-#define THRESHOLD                  0.35f    // ADJUST 0.3-0.37
-#define THRESHOLD_WEAK             1.3f
-#define THRESHOLD_STRONG           2.0f
+#define STEP_CONFIRMATION_WINDOW    1200000  // 1.2 seconds
+#define MIN_STEP_INTERVAL_US        300000   // 300 ms
+#define SAMPLE_PERIOD_US            10000    // 10 ms → 100 Hz
+#define THRESHOLD                   0.35f    // ADJUST 0.3-0.37
+#define THRESHOLD_WEAK              1.3f
+#define THRESHOLD_STRONG            2.0f
+// RUNNING
+#define STEP_FREQ_WINDOW            5
+#define THRESHOLD_RUNNING           2.2f
+
+static uint64_t step_times[STEP_FREQ_WINDOW] = {0};
+static int step_time_idx = 0;
 
 static const char *TAG = "STEP_COUNTER";
 static BiquadState  bp  = { .x1 = 0, .x2 = 0, .y1 = 0, .y2 = 0 };
+
+// Walking vs Running
+void update_step_frequency(int64_t now, movement_state_t *state) {
+    step_times[step_time_idx % STEP_FREQ_WINDOW] = now;
+    step_time_idx++;
+
+    ESP_LOGI(TAG, "Step_time_idx: %d", step_time_idx);
+
+    if (step_time_idx >= STEP_FREQ_WINDOW) {
+        int oldest_idx = (step_time_idx - STEP_FREQ_WINDOW) % STEP_FREQ_WINDOW;
+        int newest_idx = (step_time_idx - 1) % STEP_FREQ_WINDOW;
+
+        float duration_s = (step_times[newest_idx] - step_times[oldest_idx]) / 1e6f;
+        float frequency_hz = (STEP_FREQ_WINDOW - 1) / duration_s;
+        ESP_LOGI(TAG, "Step frequency: %.2f Hz", frequency_hz);
+
+        if (frequency_hz > THRESHOLD_RUNNING) {
+            if (*state != STATE_RUNNING) {
+                *state = STATE_RUNNING;
+                ESP_LOGI(TAG, "Running detected: %.2f Hz", frequency_hz);
+            }
+        } else {
+            if (*state != STATE_WALKING) {
+                *state = STATE_WALKING;
+                ESP_LOGI(TAG, "Walking detected: %.2f Hz", frequency_hz);
+            }
+        }
+    }
+}
 
 void step_counter_task(void *pvParameters) {
     // Display
@@ -138,10 +173,10 @@ void step_counter_task(void *pvParameters) {
                     }
                     state_entry_time = now;
                 }
-                else if (state==STATE_WALKING && (now - last_step_us) > MIN_STEP_INTERVAL_US) { // continue walking
+                else if ((state==STATE_WALKING || state==STATE_RUNNING) && (now - last_step_us) > MIN_STEP_INTERVAL_US) { // continue walking
                     last_step_us = now;
                     step_count++;
-                    state = STATE_WALKING;
+                    update_step_frequency(now, &state);
                     state_entry_time = now;
                     ESP_LOGI(TAG, "Step %d @ %.2fs  mag=%.2f", step_count, now/1e6f, curr);
                 }

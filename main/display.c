@@ -213,7 +213,7 @@ void drawMoveMate(
 
     // State text uppercase
     char tbuf[16];
-    const char *names[] = {"WALKING","WEAK","STRONG","IDLE","STEP?"};
+    const char *names[] = {"WALKING","WEAK","STRONG","IDLE","STEP?", "RUNNING"};
     strcpy(tbuf, names[state]);
     int tw = strlen(tbuf) * getFortWidth(&fxSmall[0]);
     int tx = panelX + (panelW - tw)/2;

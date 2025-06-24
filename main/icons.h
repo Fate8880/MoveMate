@@ -10,7 +10,7 @@ extern const uint8_t x_icon_bits   [ICON_H * ((ICON_W + 7) / 8)];
 extern const uint8_t fire_icon_bits[ICON_H * ((ICON_W + 7) / 8)];
 
 // Dog sprites per state (1bpp, width=SPRITE_W, height=SPRITE_H)
-extern const uint8_t *dog_sprite_bits[5];
+extern const uint8_t *dog_sprite_bits[6];
 
 extern const uint16_t foot_icon_pixels[];
 #define FOOT_ICON_W 32
