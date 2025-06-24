@@ -3,3 +3,4 @@ dependencies.lock
 main/idf_component.yml
 /build
 sdkconfig
+sdkconfig.old

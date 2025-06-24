@@ -52,7 +52,7 @@ void tcp_client(void *pvParameters)
     biquad_bandpass(mag, &bp);
 
     int64_t start = esp_timer_get_time();
-    while (esp_timer_get_time() - start < 60 * 1000000) {
+    while (esp_timer_get_time() - start < 20 * 1000000) {
         get_mpu_readings(&ax, &ay, &az, &gx, &gy, &gz);
         mag = sqrtf(ax*ax + ay*ay + az*az);
         float filtered = biquad_bandpass(mag, &bp);

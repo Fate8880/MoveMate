@@ -3,7 +3,7 @@ import csv
 from datetime import datetime
 
 # Server configuration
-HOST = '0.0.0.0'  # Listen on all interfaces
+HOST = '192.168.178.97'  # Listen on all interfaces
 PORT = 50
 
 print(f"Starting TCP server on port {PORT}...")
