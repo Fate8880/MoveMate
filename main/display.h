@@ -62,7 +62,8 @@ void drawMoveMate(
     int                streak,
     int                score,            // 0…10000
     movement_state_t   state,
-    movement_mood_t    mood
+    movement_mood_t    mood,
+    bool               stationary
 );
 
 #endif // DISPLAY_H

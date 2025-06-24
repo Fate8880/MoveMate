@@ -144,6 +144,7 @@ void step_counter_task(void *pvParameters) {
             if (now - last_sim_us >= 1000000) {
                 last_sim_us = now;
                 sim_step    = (sim_step + 1) % 10;  // 0…9
+                stationary_mode = !stationary_mode;
 
                 if (sim_step < 5) {
                     // 0–4: moods
@@ -151,8 +152,6 @@ void step_counter_task(void *pvParameters) {
                     mood  = (movement_mood_t)sim_step;
                 }
                 else if (sim_step < 9) {
-                    // 5–8: the four movement states
-                    // map 5→STATE_WALKING, 6→STATE_RUNNING, 7→STATE_WEAK, 8→STATE_STRONG
                     static const movement_state_t seq[4] = {
                         STATE_WALKING,
                         STATE_RUNNING,
@@ -163,7 +162,6 @@ void step_counter_task(void *pvParameters) {
                     mood  = MOOD_NEUTRAL;
                 }
                 else {
-                    // 9: out-of-range, tests fallback
                     state = STATE_POTENTIAL_STEP;
                     mood  = (movement_mood_t)(-1);
                 }
@@ -264,7 +262,8 @@ void step_counter_task(void *pvParameters) {
                 streak,
                 score,
                 state,
-                mood
+                mood,
+                stationary_mode
             );
         }
 

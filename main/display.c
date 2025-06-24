@@ -4,30 +4,6 @@
 #include "display.h"
 #include "icons.h"
 
-/* OLD BITMAP DRAWER
-// Bitmap Drawer
-static void lcdDrawBitmap(
-    TFT_t        *dev,
-    const uint8_t bits[],
-    int           w,
-    int           h,
-    int           x0,
-    int           y0,
-    uint16_t      fg_color
-){
-    int bytesPerRow = (w + 7) >> 3;
-    for(int row = 0; row < h; row++){
-        for(int col = 0; col < w; col++){
-            int byteIndex = row * bytesPerRow + (col >> 3);
-            uint8_t mask  = 0x80 >> (col & 7);
-            if(bits[byteIndex] & mask) {
-                lcdDrawPixel(dev, x0 + col, y0 + row, fg_color);
-            }
-        }
-    }
-}
-*/
-
 static void lcdDrawBitmapRGB565(
     TFT_t   *dev,
     const uint16_t pixels[],
@@ -152,6 +128,23 @@ static void drawGradientBorder(
     }
 }
 
+static void drawFullBorder(TFT_t *dev, int W, int H, int TH, uint16_t c) {
+    // top + bottom
+    for (int t = 0; t < TH; t++) {
+        for (int x = 0; x < W; x++) {
+            drawPX(dev, x, t,     c);
+            drawPX(dev, x, H-1-t, c);
+        }
+    }
+    // left + right
+    for (int t = 0; t < TH; t++) {
+        for (int y = 0; y < H; y++) {
+            drawPX(dev, t,     y, c);
+            drawPX(dev, W-1-t, y, c);
+        }
+    }
+}
+
 void drawMoveMate(
     TFT_t           *dev,
     FontxFile       *fxBig,
@@ -161,7 +154,8 @@ void drawMoveMate(
     int              streak,
     int              score,
     movement_state_t state,
-    movement_mood_t  mood
+    movement_mood_t  mood,
+    bool             stationary
 ) {
     const int TOTAL_W = 135, TOTAL_H = 240;
     // Font Direction is 90, so swap width and height
@@ -184,11 +178,17 @@ void drawMoveMate(
         };
 
         int rowH = (H - 2*PAD) / 3;
-        for(int i=0; i<3; i++){
+        for(int i=0; i<3; i++) {
             int row = 2 - i;
 
             char buf[16];
-            sprintf(buf, "%d", values[i]);
+            bool isStepRow = (i == 0);
+            if (stationary && i == 0) {
+                strcpy(buf, "STNRY");
+            } else {
+                sprintf(buf, "%d", values[i]);
+            }
+
             int txtW  = strlen(buf) * getFortWidth(&fxBig[0]);
 
             int iconX = splitX - PAD - ICON_W;
@@ -202,13 +202,12 @@ void drawMoveMate(
                     textX,
                     y + (ICON_H - getFortHeight(&fxBig[0]))/2,
                     (uint8_t*)buf, WHITE);
-
+            
             // Stat Sprite (32x32)
             drawBMP565(dev, icons565[i], ICON_W, ICON_H, iconX, y);
         }
     }
     
-
     // Right: score, sprite, state
     { // Bracket for easier reading
         int panelX = splitX + PAD;
@@ -218,6 +217,10 @@ void drawMoveMate(
 
         // Draw Score Progressbar
         drawGradientBorder(dev, panelX, panelY, panelW, panelH, score);
+
+        if (stationary) {
+            drawFullBorder(dev, W, H, 5, 0xFFE0);
+        }
 
         // Decide Label and Sprite, then store
         const char *label;
