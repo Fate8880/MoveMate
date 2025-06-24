@@ -5,13 +5,19 @@
 #include "display.h"
 
 void update_score(
+    int                 *score,
+    int                 step_count,
+    movement_state_t    state,
+    float               weak_duration,
+    float               strong_duration,
+    movement_mood_t     *mood
+);
+
+bool checkDayChange(
     int             *score,
     int             *deaths,
     int             *streak,
-    int             step_count,
-    movement_mood_t *mood,
-    float           weak_duration,
-    float           strong_duration
+    movement_mood_t *mood
 );
 
 #endif // SCORE_H
