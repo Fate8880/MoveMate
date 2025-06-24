@@ -63,9 +63,9 @@ void app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    // if (CONNECT_TO_SERVER) {
-    //     ESP_ERROR_CHECK(example_connect());
-    // }
+    if (CONNECT_TO_SERVER) {
+        ESP_ERROR_CHECK(example_connect());
+    }
 
     // Initialize I2C and MPU sensor
     ESP_ERROR_CHECK(sensor_i2c_master_init());
@@ -106,11 +106,10 @@ void app_main(void)
       .fxSmall = fxSmall
     };
 
-    xTaskCreate(step_counter_task, "step_counter", 6 * 1024, &disp_args, 5, NULL);
-
-
     if (CONNECT_TO_SERVER) {
+        ESP_LOGI("main", "Starting TCP client...");
         xTaskCreate(tcp_client, "tcp_client", 8 * 1024, &dev, 5, NULL);
+    } else {
+        xTaskCreate(step_counter_task, "step_counter", 6 * 1024, &disp_args, 5, NULL);
     }
-
 }

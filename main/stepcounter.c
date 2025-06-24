@@ -113,8 +113,7 @@ void step_counter_task(void *pvParameters) {
             // IDLE
             if (state == STATE_WALKING && now - state_entry_time > 1500000) {
                 state = STATE_IDLE;
-            } else if ((state == STATE_WEAK || state == STATE_STRONG)
-                    && now - state_entry_time > 500000) {
+            } else if ((state == STATE_WEAK || state == STATE_STRONG) && now - state_entry_time > 500000) {
                 state = STATE_IDLE;
             }
 
@@ -126,8 +125,7 @@ void step_counter_task(void *pvParameters) {
                     first_step_time  = now;
                     ESP_LOGI(TAG, "Potential step detected, waiting for confirmation");
                 }
-                else if (state==STATE_POTENTIAL_STEP
-                        && (now - first_step_time) > 500000) {
+                else if (state==STATE_POTENTIAL_STEP && (now - first_step_time) > 500000) {
                     if ((now - first_step_time) <= STEP_CONFIRMATION_WINDOW) {
                         step_count += 2;
                         state = STATE_WALKING;
@@ -162,13 +160,6 @@ void step_counter_task(void *pvParameters) {
                 }
                 state_entry_time = now;
             }
-            else if (state==STATE_WALKING && (now - last_step_us) > MIN_STEP_INTERVAL_US) { // continue walking
-                last_step_us = now;
-                step_count++;
-                state = STATE_WALKING;
-                state_entry_time = now;
-                ESP_LOGI(TAG, "Step %d @ %.2fs  mag=%.2f unfilt.=%.2f", step_count, now/1e6f, curr, mag);
-            }
         }
 
             // TOO LONG IN POTENTIAL STEP
@@ -178,7 +169,6 @@ void step_counter_task(void *pvParameters) {
             strong_duration += 1.0f;  // CHANGE
             state_entry_time = now;
             ESP_LOGI(TAG, "Step confirmation timeout → STRONG");
-        }
         }
         // TODO: Update deaths, streak, score
 
@@ -195,7 +185,6 @@ void step_counter_task(void *pvParameters) {
             );
         }
 
-        // wait for next sample
         vTaskDelay(pdMS_TO_TICKS(SAMPLE_PERIOD_US / 1000));
     }
 }
