@@ -16,6 +16,7 @@ idf_component_register(
         tcp_client.c
         display.c
         icons.c
+        score.c
     INCLUDE_DIRS "."
     REQUIRES
         protocol_examples_common

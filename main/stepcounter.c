@@ -12,6 +12,7 @@
 #include "stepcounter.h"
 #include "display.h"
 #include "driver/gpio.h"
+#include "score.h"
 
 bool testDisplay = false; // Is for debugging
 
@@ -209,11 +210,13 @@ void step_counter_task(void *pvParameters) {
                     if ((now - first_step_time) <= STEP_CONFIRMATION_WINDOW) {
                         step_count += 2;
                         state = STATE_WALKING;
+                        update_score(&score, step_count, state, weak_duration, strong_duration, &mood);
                         ESP_LOGI(TAG, "Walking confirmed - counted 2 steps");
                     } else {
                         // first step was most likely a strong movement
                         state = STATE_STRONG;
                         strong_duration += 1.0f; // CHANGE
+                        update_score(&score, step_count, state, weak_duration, strong_duration, &mood);
                         ESP_LOGI(TAG, "Strong movement (timeout)");
                     }
                     state_entry_time = now;
@@ -223,6 +226,7 @@ void step_counter_task(void *pvParameters) {
                     step_count++;
                     update_step_frequency(now, &state);
                     state_entry_time = now;
+                    update_score(&score, step_count, state, weak_duration, strong_duration, &mood);
                     ESP_LOGI(TAG, "Step %d @ %.2fs  mag=%.2f", step_count, now/1e6f, curr);
                 }
             }
@@ -232,10 +236,12 @@ void step_counter_task(void *pvParameters) {
                 if (mag > THRESHOLD_STRONG) {
                     state = STATE_STRONG;
                     strong_duration += 0.1f;
+                    update_score(&score, step_count, state, weak_duration, strong_duration, &mood);
                     ESP_LOGI(TAG, "Strong movement: %.2f, mag=%.2f", strong_duration, mag);
                 } else {
                     state = STATE_WEAK;
                     weak_duration += 0.1f;
+                    update_score(&score, step_count, state, weak_duration, strong_duration, &mood);
                     ESP_LOGI(TAG, "Weak movement: %.2f, mag=%.2f", weak_duration, mag);
                 }
                 state_entry_time = now;
@@ -248,9 +254,14 @@ void step_counter_task(void *pvParameters) {
             state = STATE_STRONG;
             strong_duration += 1.0f;  // TODO: CHANGE
             state_entry_time = now;
+            update_score(&score, step_count, state, weak_duration, strong_duration, &mood);
             ESP_LOGI(TAG, "Step confirmation timeout → STRONG");
         }
-        // TODO: Update deaths, streak, score
+        
+        bool dayChanged = checkDayChange(&score, &deaths, &streak, &mood);
+        if (dayChanged) {
+            step_count = 0;
+        }
 
         // Display
         if ((now - last_display_us) > 500000) {

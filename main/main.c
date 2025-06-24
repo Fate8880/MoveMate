@@ -30,6 +30,7 @@
 #include "esp_spiffs.h"
 #include "display.h" 
 #include "stepcounter.h"
+#include "score.h"
 
 // Logging tag for SPIFFS
 static const char *TAG = "SPIFFS";
