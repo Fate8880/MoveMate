@@ -8,11 +8,12 @@
 // States
 typedef enum {
     STATE_WALKING,
+    STATE_RUNNING,
     STATE_WEAK,
     STATE_STRONG,
     STATE_IDLE,
     STATE_POTENTIAL_STEP,
-    STATE_RUNNING
+    STATE_COUNT
 } movement_state_t;
 
 // Prototype for the task

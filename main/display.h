@@ -34,23 +34,35 @@ typedef struct {
     FontxFile *fxSmall;
 } display_args_t;
 
-// Icon bitmaps (32x32px)
+/* OLD PLACEHOLDER
+// Icon placeholder
 extern const uint8_t foot_icon_bits[];
 extern const uint8_t x_icon_bits[];
 extern const uint8_t fire_icon_bits[];
 
-// Dog sprites per state (64x64px each)
+// Dog sprites placeholder
 extern const uint8_t *dog_sprite_bits[6];  // index with movement_state_t
+*/
+
+typedef enum {
+    MOOD_DEAD = 0,
+    MOOD_EXCITED,
+    MOOD_HAPPY,
+    MOOD_NEUTRAL,
+    MOOD_SAD,
+    MOOD_COUNT
+} movement_mood_t;
 
 void drawMoveMate(
     TFT_t             *dev,
     FontxFile         *fxBig,
     FontxFile         *fxSmall,
-    int                 steps,
-    int                 deaths,
-    int                 streak,
-    int                 score,            // 0…10000
-    movement_state_t    state
+    int                steps,
+    int                deaths,
+    int                streak,
+    int                score,            // 0…10000
+    movement_state_t   state,
+    movement_mood_t    mood
 );
 
 #endif // DISPLAY_H

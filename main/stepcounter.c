@@ -12,6 +12,8 @@
 #include "stepcounter.h"
 #include "display.h"
 
+bool testDisplay = true; // Is for debugging
+
 // === Tuning parameters ===
 #define STEP_CONFIRMATION_WINDOW    1200000  // 1.2 seconds
 #define MIN_STEP_INTERVAL_US        300000   // 300 ms
@@ -70,8 +72,6 @@ void step_counter_task(void *pvParameters) {
     lcdFillScreen(dev, BLACK);
     lcdDrawFinish(dev);
 
-    bool testDisplay = false; // Is for debugging
-
     // Counters and state
     int               step_count      = 0;
     int               deaths          = 0;
@@ -80,10 +80,12 @@ void step_counter_task(void *pvParameters) {
     movement_state_t  state           = STATE_IDLE;
     float             weak_duration   = 0.0f;
     float             strong_duration = 0.0f;
+    movement_mood_t   mood            = MOOD_NEUTRAL;
 
     // Timing for display and step intervals
     int64_t           last_display_us  = esp_timer_get_time();
     int64_t           last_sim_us      = last_display_us;
+    static int        sim_step         = 0;
     int64_t           last_step_us     = 0;
     int64_t           state_entry_time = 0;
     int64_t           first_step_time  = 0;
@@ -103,32 +105,44 @@ void step_counter_task(void *pvParameters) {
         int64_t now = esp_timer_get_time();
 
         if (testDisplay) {
-            // Once per second simulation
+            static int sim_step = 0;
+            int64_t now = esp_timer_get_time();
+
             if (now - last_sim_us >= 1000000) {
                 last_sim_us = now;
+                sim_step    = (sim_step + 1) % 10;  // 0…9
 
-                // +1 step
+                if (sim_step < 5) {
+                    // 0–4: moods
+                    state = STATE_IDLE;
+                    mood  = (movement_mood_t)sim_step;
+                }
+                else if (sim_step < 9) {
+                    // 5–8: the four movement states
+                    // map 5→STATE_WALKING, 6→STATE_RUNNING, 7→STATE_WEAK, 8→STATE_STRONG
+                    static const movement_state_t seq[4] = {
+                        STATE_WALKING,
+                        STATE_RUNNING,
+                        STATE_WEAK,
+                        STATE_STRONG
+                    };
+                    state = seq[sim_step - 5];
+                    mood  = MOOD_NEUTRAL;
+                }
+                else {
+                    // 9: out-of-range, tests fallback
+                    state = STATE_POTENTIAL_STEP;
+                    mood  = (movement_mood_t)(-1);
+                }
+
+                // advance stats so you can see the border move
                 step_count++;
-
-                // +250 score (cap at 10000)
-                score += 250;
-                if (score > 10000) score = 10000;
-
-                // every 5 steps → streak++
-                if (step_count % 5 == 0) {
-                    streak++;
-                }
-
-                // every 40 steps → death + reset
-                if (step_count % 40 == 0) {
+                score = (score + 250 > 10000) ? 10000 : score + 250;
+                if (!(step_count % 5))  streak++;
+                if (!(step_count % 40)) {
                     deaths++;
-                    step_count = 0;
-                    streak     = 0;
-                    score      = 0;
+                    step_count = streak = score = 0;
                 }
-
-                // flip state so you see the sprite animate
-                state = (state == STATE_WALKING) ? STATE_IDLE : STATE_WALKING;
             }
         } else {
             // Shift window for step detection
@@ -216,7 +230,8 @@ void step_counter_task(void *pvParameters) {
                 deaths,
                 streak,
                 score,
-                state
+                state,
+                mood
             );
         }
 
