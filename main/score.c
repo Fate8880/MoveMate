@@ -78,6 +78,8 @@ void updateScore(
     }
 }
 
+// Checks if a new day has begun and sets the mood accordingly. The mood decreases only if the score and current mood do not align, which means that the mood
+// worsens over time if there is no or insufficient movement. The deaths, streaks, and movement data are also getting (re-)set.
 bool checkDayChange(
     int             *score,
     int             *deaths,
