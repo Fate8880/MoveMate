@@ -91,7 +91,11 @@ bool checkDayChange(
     if ((DAY && difftime(the_time, current_day) >= 86400) || difftime(the_time, current_day) >= 30) {
         current_day = the_time;
 
-        if (*mood == MOOD_SAD && *score < NEUTRAL) {
+        if (*mood == MOOD_DEAD && *score == 0) {
+            *mood = MOOD_DEAD;
+            *deaths = *deaths;
+            *streak = 0;
+        } else if (*mood == MOOD_SAD && *score < NEUTRAL) {
             *mood = MOOD_DEAD;
             *deaths = *deaths + 1;
             *streak = 0;
@@ -103,6 +107,8 @@ bool checkDayChange(
             *streak = *streak + 1;
         } else if (*mood == MOOD_EXCITED && *score < EXCITED) {
             *mood = MOOD_HAPPY;
+            *streak = *streak + 1;
+        } else {
             *streak = *streak + 1;
         }
 
