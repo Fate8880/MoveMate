@@ -22,7 +22,7 @@ bool testDisplay = false; // Is for debugging
 #define SAMPLE_PERIOD_US            10000    // 10 ms → 100 Hz
 #define THRESHOLD                   0.35f    // ADJUST 0.3-0.37
 #define THRESHOLD_WEAK              1.3f
-#define THRESHOLD_STRONG            2.5f
+#define THRESHOLD_STRONG            2.0f
 // RUNNING
 #define STEP_FREQ_WINDOW            5
 #define THRESHOLD_RUNNING           2.2f
