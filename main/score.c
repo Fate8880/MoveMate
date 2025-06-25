@@ -33,10 +33,23 @@
 int steps_walked = 0;
 int steps_ran = 0;
 
-time_t start_time;
 time_t current_day;
 
 static const char *TAG = "SCORE";
+
+time_t noramliseTime(time_t a_time) {
+    struct tm *local = localtime(&a_time);
+
+    if (DAY) {    
+        local->tm_hour = 0;
+        local->tm_min = 0;
+        local->tm_sec = 0;
+    } else {
+        local->tm_sec = (local->tm_sec < 30) ? 0 : 30;
+    }
+
+    return mktime(local);
+}
 
 // Recalculate score with the new state of movement data. The score is calculated in such a manner, that 10,000 points can be reached max.
 // This equals 7,000 walking steps, 3,500 running steps, 120 minutes of weak non-walking exercise, or 30 minutes of strong non-walking exercise.
@@ -50,9 +63,8 @@ void updateScore(
     float               strong_duration,
     movement_mood_t     *mood
 ) {
-    if (start_time == (time_t) -1) {
-        start_time = time(NULL);
-        current_day = start_time;
+    if (current_day == (time_t) -1) {
+        current_day = noramliseTime(time(NULL));
     }
 
     if (state == STATE_WALKING) {
@@ -89,6 +101,9 @@ bool checkDayChange(
     time_t the_time = time(NULL);
 
     if ((DAY && difftime(the_time, current_day) >= 86400) || difftime(the_time, current_day) >= 30) {
+        the_time = noramliseTime(the_time);
+        ESP_LOGI(TAG, "Previous day: %s", ctime(&current_day));
+        ESP_LOGI(TAG, "New day: %s", ctime(&the_time));
         current_day = the_time;
 
         if (*mood == MOOD_DEAD && *score == 0) {
