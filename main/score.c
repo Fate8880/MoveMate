@@ -38,7 +38,11 @@ time_t current_day;
 
 static const char *TAG = "SCORE";
 
-void update_score(
+// Recalculate score with the new state of movement data. The score is calculated in such a manner, that 10,000 points can be reached max.
+// This equals 7,000 walking steps, 3,500 running steps, 120 minutes of weak non-walking exercise, or 30 minutes of strong non-walking exercise.
+// The mood of Move Mate is updated accordingly. The mood can only improve in a day, not worsen.
+// The breakpoints for each mood are at 0 (sad), 2,500 (neutral), 5,000 (happy), and 9,000 (excited)
+void updateScore(
     int                 *score,
     int                 step_count,
     movement_state_t    state,

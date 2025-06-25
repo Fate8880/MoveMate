@@ -4,7 +4,7 @@
 
 #include "display.h"
 
-void update_score(
+void updateScore(
     int                 *score,
     int                 step_count,
     movement_state_t    state,
